@@ -1,0 +1,1653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Invariant Features in Language Models · NeurIPS 2026</title>
+  <meta name="description" content="NeurIPS 2026 poster: geometric characterization of semantic invariance in language models, and zero-shot model attribution via contrastive sensitivity decomposition." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650;9..144,700&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --ink: #101820;
+      --ink-soft: #243040;
+      --paper: #e9eef2;
+      --paper-2: #dce4ea;
+      --muted: #5a6a78;
+      --line: rgba(16, 24, 32, 0.12);
+      --accent: #0e7c86;
+      --accent-deep: #0a5f67;
+      --signal: #c45c26;
+      --sp: #0e7c86;
+      --sc: #c45c26;
+      --shadow: 0 24px 60px rgba(16, 24, 32, 0.14);
+      --radius: 2px;
+      --max: 1120px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: "Sora", system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      line-height: 1.55;
+      font-weight: 400;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -1;
+      background:
+        radial-gradient(900px 520px at 8% -8%, rgba(14, 124, 134, 0.18), transparent 58%),
+        radial-gradient(720px 460px at 100% 0%, rgba(16, 24, 32, 0.08), transparent 55%),
+        linear-gradient(165deg, #f2f6f8 0%, #e4ebf0 42%, #d5dfe6 100%);
+    }
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -1;
+      opacity: 0.4;
+      background-image:
+        linear-gradient(rgba(16, 24, 32, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(16, 24, 32, 0.035) 1px, transparent 1px);
+      background-size: 52px 52px;
+      mask-image: radial-gradient(ellipse at 40% 0%, black 15%, transparent 70%);
+    }
+
+    a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    a:hover { color: var(--accent-deep); }
+
+    .wrap {
+      width: min(100% - 2rem, var(--max));
+      margin-inline: auto;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1.15rem 0 0.5rem;
+      font-size: 0.82rem;
+      letter-spacing: 0.04em;
+    }
+    .nav-brand {
+      font-family: "Fraunces", Georgia, serif;
+      font-weight: 650;
+      font-size: 1.05rem;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem 1.1rem;
+      list-style: none;
+      justify-content: flex-end;
+    }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .nav-links a:hover { color: var(--ink); }
+    .nav-links a.ext {
+      color: var(--accent);
+    }
+
+    .hero {
+      padding: 2.5rem 0 2rem;
+      display: grid;
+      gap: 1.75rem;
+    }
+    .kicker {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.85rem;
+      animation: rise 0.8s ease both;
+    }
+    .arxiv-line {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin: -0.4rem 0 1rem;
+      animation: rise 0.8s ease both 0.04s;
+    }
+    .hero h1 {
+      font-family: "Fraunces", Georgia, serif;
+      font-weight: 700;
+      font-size: clamp(1.85rem, 4.2vw, 3.1rem);
+      line-height: 1.12;
+      letter-spacing: -0.03em;
+      color: var(--ink);
+      margin-bottom: 1rem;
+      max-width: 22ch;
+      animation: rise 0.8s ease both 0.08s;
+    }
+    .authors {
+      font-size: 0.95rem;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+      animation: rise 0.8s ease both 0.14s;
+    }
+    .authors strong { color: var(--ink-soft); font-weight: 500; }
+    .authors a {
+      color: inherit;
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: color 0.2s ease, border-color 0.2s ease;
+    }
+    .authors a:hover {
+      color: var(--accent);
+      border-bottom-color: rgba(14, 124, 134, 0.45);
+    }
+    .authors a strong { color: inherit; }
+    .author-note {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+      animation: rise 0.8s ease both 0.16s;
+    }
+    .affiliation {
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin-bottom: 1.35rem;
+      animation: rise 0.8s ease both 0.18s;
+    }
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      margin-bottom: 1.5rem;
+      animation: rise 0.8s ease both 0.22s;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.68rem 1.05rem;
+      border-radius: var(--radius);
+      font-size: 0.86rem;
+      font-weight: 550;
+      text-decoration: none;
+      border: 1px solid transparent;
+      transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+      cursor: pointer;
+      font-family: inherit;
+      background: transparent;
+      color: var(--ink);
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary {
+      background: var(--ink);
+      color: var(--paper);
+    }
+    .btn-primary:hover { background: var(--accent); color: #fff; }
+    .btn-ghost {
+      border-color: var(--line);
+    }
+    .btn-ghost:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(14, 124, 134, 0.07);
+    }
+
+    .tldr {
+      padding: 1rem 1.15rem;
+      border-left: 3px solid var(--accent);
+      background: rgba(255, 255, 255, 0.4);
+      max-width: 46rem;
+      animation: rise 0.8s ease both 0.26s;
+    }
+    .tldr-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.35rem;
+    }
+    .tldr p {
+      font-size: 0.98rem;
+      color: var(--ink-soft);
+      font-weight: 300;
+    }
+
+    .hero-figure {
+      margin-top: 0.25rem;
+      animation: rise 0.9s ease both 0.3s;
+    }
+    .hero-figure img,
+    .figure-block img {
+      width: auto;
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin-left: 0;
+      margin-right: auto;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      background: #fff;
+      object-fit: contain;
+    }
+    .figure-block.narrow img {
+      max-width: min(100%, 560px);
+    }
+    .figure-block.fig3 img {
+      max-width: min(100%, 504px);
+    }
+    .figure-block.wide img {
+      max-width: min(100%, 960px);
+    }
+    .figure-block.pad-frame {
+      display: inline-block;
+      max-width: 100%;
+      padding: 1.35rem;
+      background: #fff;
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+    }
+    .figure-block.pad-frame img {
+      box-shadow: none;
+      border-radius: 0;
+      max-width: 100%;
+    }
+    .fig-cap {
+      margin-top: 0.7rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+      max-width: 52rem;
+      margin-left: 0;
+      margin-right: auto;
+      text-align: left;
+    }
+    .fig-cap strong {
+      color: var(--ink-soft);
+      font-weight: 550;
+    }
+
+    @keyframes rise {
+      from { transform: translateY(14px); filter: blur(2px); }
+      to { transform: translateY(0); filter: none; }
+    }
+
+    section {
+      padding: 3.75rem 0;
+      border-top: 1px solid var(--line);
+    }
+    .sec-label {
+      font-family: "Fraunces", Georgia, serif;
+      font-size: clamp(1.55rem, 2.8vw, 2.2rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--ink);
+      margin-bottom: 1rem;
+    }
+    h2 {
+      font-family: "Fraunces", Georgia, serif;
+      font-size: clamp(1.55rem, 2.8vw, 2.2rem);
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin-bottom: 0.9rem;
+      max-width: 28ch;
+    }
+    h3 {
+      font-family: "Fraunces", Georgia, serif;
+      font-size: 1.2rem;
+      font-weight: 650;
+      letter-spacing: -0.01em;
+      margin-bottom: 0.45rem;
+    }
+    .sec-lead {
+      color: var(--muted);
+      max-width: 42rem;
+      margin-bottom: 1.75rem;
+      font-size: 1.02rem;
+      font-weight: 300;
+    }
+    .body-text {
+      color: var(--ink-soft);
+      max-width: 46rem;
+      font-weight: 300;
+      font-size: 1.02rem;
+    }
+
+    .takeaway {
+      font-size: 0.98rem;
+      color: var(--ink-soft);
+      font-weight: 400;
+      margin-bottom: 1.1rem;
+      max-width: 44rem;
+    }
+    .stat-line {
+      font-size: 0.9rem;
+      color: var(--ink-soft);
+      margin: 0.85rem 0 0.35rem;
+      max-width: 44rem;
+    }
+    .def-note {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 0.35rem;
+      max-width: 44rem;
+    }
+
+    /* Dataset explorer */
+    .explorer {
+      margin-top: 1.75rem;
+      padding: 1.15rem;
+      background: rgba(255, 255, 255, 0.45);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+    .explorer-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .explorer-controls label {
+      font-size: 0.8rem;
+      font-weight: 550;
+      color: var(--muted);
+    }
+    select, .slider-row input[type="range"] {
+      font-family: inherit;
+      font-size: 0.88rem;
+    }
+    select {
+      padding: 0.45rem 0.65rem;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: var(--radius);
+      max-width: 100%;
+    }
+    .example-grid {
+      display: grid;
+      gap: 0.75rem;
+    }
+    @media (min-width: 720px) {
+      .example-grid { grid-template-columns: 1fr 1fr; }
+    }
+    .ex-box {
+      padding: 0.85rem 0.95rem;
+      background: rgba(255, 255, 255, 0.65);
+      border-top: 2px solid var(--accent);
+    }
+    .ex-box.sc { border-top-color: var(--signal); }
+    .ex-box.hard { border-top-color: var(--ink); }
+    .ex-box h4 {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+    .ex-box p, .ex-box li {
+      font-size: 0.88rem;
+      color: var(--ink-soft);
+      line-height: 1.45;
+    }
+    .ex-box ul {
+      list-style: none;
+      display: grid;
+      gap: 0.35rem;
+    }
+    .dataset-summary {
+      margin-top: 1rem;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+
+    /* Method steps */
+    .contrib-list {
+      list-style: none;
+      display: grid;
+      gap: 1.15rem;
+      counter-reset: c;
+      margin-bottom: 0;
+    }
+    .contrib-list li {
+      counter-increment: c;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 1rem;
+      align-items: start;
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .contrib-list li:last-child {
+      border-bottom: none;
+      padding-bottom: 0.35rem;
+    }
+    .method-align {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 1rem;
+      align-items: start;
+      margin-top: 1rem;
+    }
+    .method-align-spacer {
+      font-family: "Fraunces", Georgia, serif;
+      font-size: 1.35rem;
+      font-weight: 650;
+      line-height: 1.2;
+      visibility: hidden;
+      user-select: none;
+    }
+    .contrib-list li::before {
+      content: counter(c, decimal-leading-zero);
+      font-family: "Fraunces", Georgia, serif;
+      font-size: 1.35rem;
+      color: var(--accent);
+      font-weight: 650;
+      line-height: 1.2;
+    }
+    .contrib-list p {
+      color: var(--muted);
+      font-size: 0.95rem;
+      max-width: 44rem;
+    }
+    .method-figure {
+      margin: 0.85rem 0 0.35rem;
+    }
+    .eq-block {
+      margin: 0.75rem 0 0.25rem;
+      overflow-x: auto;
+      padding: 0.65rem 0;
+      font-size: 1.05rem;
+      text-align: left;
+    }
+    .eq-block .katex-display {
+      text-align: left;
+      margin: 0.35rem 0;
+    }
+    .eq-block .katex-display > .katex {
+      text-align: left;
+    }
+
+    .limit-figure {
+      max-width: min(100%, 399px);
+      margin-top: 1rem;
+    }
+
+    /* Charts */
+    .result-block {
+      margin-bottom: 0;
+      padding: 1.35rem 0 1.75rem;
+      border-bottom: 1px solid var(--line);
+    }
+    .result-block:last-child {
+      border-bottom: none;
+      padding-bottom: 0.5rem;
+    }
+    .result-block > h3 {
+      margin-bottom: 0.65rem;
+    }
+    .chart-card {
+      margin-top: 0.75rem;
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid var(--line);
+    }
+    .chart-wrap {
+      position: relative;
+      width: 100%;
+      height: 320px;
+    }
+    .chart-wrap.tall { height: 380px; }
+    .chart-wrap-short { height: 300px; }
+    .chart-half {
+      max-width: min(100%, 624px);
+    }
+    .chart-sixty {
+      max-width: min(100%, 672px);
+    }
+    .swap-explain {
+      margin: 1rem 0 1.35rem;
+      padding: 1rem 1.05rem 1.15rem;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid var(--line);
+      max-width: 760px;
+    }
+    .swap-explain h4 {
+      font-family: "Fraunces", Georgia, serif;
+      font-size: 1.05rem;
+      margin-bottom: 0.35rem;
+    }
+    .swap-explain > p {
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin-bottom: 0.85rem;
+      max-width: 42rem;
+    }
+    .swap-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.15rem;
+      margin-bottom: 0.95rem;
+      font-size: 0.78rem;
+      color: var(--ink-soft);
+    }
+    .swap-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .swatch {
+      width: 1.1rem;
+      height: 0.85rem;
+      border: 1px solid var(--line);
+      display: inline-block;
+    }
+    .swatch.inv { background: rgba(14, 124, 134, 0.35); border-color: #0e7c86; }
+    .swatch.nuis { background: rgba(196, 92, 38, 0.28); border-color: #c45c26; }
+    .hl-inv {
+      color: #0a5f67;
+      background: rgba(14, 124, 134, 0.14);
+      padding: 0.05em 0.28em;
+      border-radius: 2px;
+      font-weight: 550;
+    }
+    .hl-nuis {
+      color: #9a4a22;
+      background: rgba(196, 92, 38, 0.14);
+      padding: 0.05em 0.28em;
+      border-radius: 2px;
+      font-weight: 550;
+    }
+    .swap-diagram {
+      width: 100%;
+      height: auto;
+      display: block;
+      background: #fff;
+      border: 1px solid var(--line);
+    }
+    .swap-donor-note {
+      margin-top: 0.85rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      max-width: 44rem;
+    }
+    .chart-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    .chart-toolbar label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-weight: 550;
+    }
+    .axis-note {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 0.35rem;
+    }
+
+    /* Check cards */
+    .check-grid {
+      display: grid;
+      gap: 1.15rem;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 780px) {
+      .check-grid { grid-template-columns: 1fr 1fr; }
+    }
+    .check-card {
+      padding: 1.25rem 1.15rem;
+      background: rgba(255, 255, 255, 0.45);
+      border-top: 2px solid var(--accent);
+    }
+    .check-card h3 {
+      font-size: 1.15rem;
+      margin-bottom: 0.55rem;
+    }
+    .check-card p {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 0.65rem;
+      line-height: 1.5;
+    }
+    .check-headline {
+      font-family: "Fraunces", Georgia, serif;
+      font-size: 0.98rem;
+      font-weight: 650;
+      color: var(--ink);
+      margin-bottom: 0.55rem;
+      line-height: 1.35;
+    }
+    .check-example {
+      font-size: 0.82rem;
+      color: var(--ink-soft);
+      font-style: italic;
+      margin-bottom: 0;
+    }
+
+    .limit-list {
+      list-style: none;
+      display: grid;
+      gap: 0.85rem;
+      max-width: 48rem;
+      margin-bottom: 1.5rem;
+      counter-reset: lim;
+    }
+    .limit-list li {
+      counter-increment: lim;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.75rem;
+      color: var(--ink-soft);
+      font-size: 0.95rem;
+      font-weight: 300;
+      align-items: start;
+    }
+    .limit-list li::before {
+      content: counter(lim) ".";
+      font-family: "Fraunces", Georgia, serif;
+      font-weight: 650;
+      color: var(--accent);
+      line-height: 1.45;
+    }
+
+    .bib-wrap {
+      margin-top: 1.25rem;
+      margin-bottom: 1.75rem;
+    }
+    .bib-label {
+      font-size: 0.8rem;
+      font-weight: 550;
+      color: var(--muted);
+      margin-bottom: 0.45rem;
+    }
+    .bib-box {
+      position: relative;
+    }
+    .bib {
+      background: var(--ink);
+      color: #d7e0db;
+      padding: 1.35rem 1.25rem;
+      border-radius: var(--radius);
+      font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+      font-size: 0.78rem;
+      line-height: 1.55;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 0.7rem;
+      right: 0.7rem;
+      font-family: "Sora", sans-serif;
+      font-size: 0.72rem;
+      font-weight: 550;
+      padding: 0.35rem 0.65rem;
+      border: 1px solid rgba(215, 224, 219, 0.25);
+      background: rgba(255, 255, 255, 0.06);
+      color: #d7e0db;
+      cursor: pointer;
+      border-radius: var(--radius);
+    }
+    .copy-btn:hover { background: rgba(14, 124, 134, 0.45); }
+
+    footer {
+      padding: 2.5rem 0 3.5rem;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    footer .row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: center;
+    }
+    footer .links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.85rem;
+    }
+    footer a { text-decoration: none; font-weight: 500; }
+
+    .reveal { opacity: 1; transform: none; }
+    .js .reveal {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .js .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+      .js .reveal {
+        opacity: 1 !important;
+        transform: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <script>document.documentElement.classList.add("js");</script>
+
+  <header class="wrap">
+    <nav class="nav" aria-label="Primary">
+      <a class="nav-brand" href="#">Invariant Features</a>
+      <ul class="nav-links">
+        <li><a href="#problem">Problem</a></li>
+        <li><a href="#method">Method</a></li>
+        <li><a href="#results">Results</a></li>
+        <li><a href="#limitations">Limitations</a></li>
+        <li><a href="#cite">Cite</a></li>
+        <!-- TODO_AUTHOR Paper: <li><a class="ext" href="TODO_AUTHOR">Paper</a></li> -->
+        <li><a class="ext" href="https://arxiv.org/abs/2605.06458" target="_blank" rel="noopener">arXiv</a></li>
+        <li><a class="ext" href="https://github.com/XinZhong-AI/InvariantFeaturesLanguageModels" target="_blank" rel="noopener">Code</a></li>
+      </ul>
+    </nav>
+
+    <div class="hero">
+      <div class="hero-copy">
+        <p class="kicker">NeurIPS 2026 · Poster</p>
+        <p class="arxiv-line">Also on arXiv:2605.06458 · cs.LG</p>
+        <h1>Invariant Features in Language Models: Geometric Characterization and Model Attribution</h1>
+
+        <p class="authors">
+          <a href="https://cent664.github.io/" target="_blank" rel="noopener"><strong>Agnibh Dasgupta</strong></a>*,
+          <a href="https://scholar.google.com/citations?user=UtEMZK0AAAAJ&amp;hl=en" target="_blank" rel="noopener"><strong>Abdullah All Tanvir</strong></a>*,
+          <a href="https://sites.google.com/view/xin-zhong" target="_blank" rel="noopener"><strong>Xin Zhong</strong></a>†
+        </p>
+        <p class="author-note">* Equal contribution. † Corresponding author.</p>
+        <p class="affiliation">Department of Computer Science, University of Nebraska Omaha.</p>
+
+        <div class="cta-row">
+          <!-- TODO_AUTHOR Paper button: <a class="btn btn-primary" href="TODO_AUTHOR">Paper</a> -->
+          <a class="btn btn-primary" href="https://arxiv.org/abs/2605.06458" target="_blank" rel="noopener">arXiv</a>
+          <a class="btn btn-ghost" href="https://github.com/XinZhong-AI/InvariantFeaturesLanguageModels" target="_blank" rel="noopener">Code</a>
+          <!-- TODO_AUTHOR Data: <a class="btn btn-ghost" href="TODO_AUTHOR">Data</a> -->
+          <!-- TODO_AUTHOR Poster: <a class="btn btn-ghost" href="TODO_AUTHOR">Poster</a> -->
+          <!-- TODO_AUTHOR Slides: <a class="btn btn-ghost" href="TODO_AUTHOR">Slides</a> -->
+          <a class="btn btn-ghost" href="#cite">BibTeX</a>
+        </div>
+
+        <div class="tldr">
+          <div class="tldr-label">TL;DR</div>
+          <p>
+            We give a local geometric characterization of semantic invariance in language models: paraphrases tend to move along nuisance directions, while meaning lives in a more stable subspace. Contrasting meaning-preserving and meaning-changing edits recovers that subspace. Interventions test it, and its model-specific geometry supports zero-shot model attribution.
+          </p>
+        </div>
+      </div>
+
+      <figure class="hero-figure">
+        <img src="figures/1_PIA.png" alt="Overview of invariant features: paraphrase convergence, local geometry, and model attribution" width="4135" height="1996" />
+        <figcaption class="fig-cap">
+          <strong>Figure 1.</strong> (A) Paraphrases propagate through layers and tend to converge to compact zones. (B) Local geometric interpretation: nuisance vs semantic tangent directions. (C) Geometric decomposition detects invariant zones for model attribution.
+        </figcaption>
+      </figure>
+    </div>
+  </header>
+
+  <main>
+    <!-- Problem -->
+    <section id="problem">
+      <div class="wrap reveal">
+        <p class="sec-label">Problem</p>
+        <p class="body-text">
+          Language models give consistent answers to prompts that are worded differently. This suggests they represent meaning in a way that is stable under paraphrasing. But a raw hidden state mixes meaning with surface form, so two paraphrases can sit far apart while two different questions sit close together. Prior work shows semantic structure exists in these representations, but does not separate meaning preserving variation from meaning changing variation. We ask where a stable semantic subspace exists, how to find it, and whether it differs between models.
+        </p>
+
+        <div class="explorer" aria-label="Dataset example explorer">
+          <div class="explorer-controls">
+            <label for="groupSelect">Semantic group</label>
+            <select id="groupSelect"></select>
+          </div>
+          <div class="example-grid" id="exampleGrid"></div>
+          <p class="dataset-summary">
+            1,400 semantic groups · 13 domains · 57,400 sentences · each group: 1 anchor, 20 SP, 10 soft SC, 10 hard SC · disjoint discovery and validation splits.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Method -->
+    <section id="method">
+      <div class="wrap reveal">
+        <p class="sec-label">Method</p>
+
+        <ol class="contrib-list">
+          <li>
+            <div>
+              <h3>Local geometric definition</h3>
+              <p>Invariant features are stable under meaning preserving edits and still distinguish different meanings. Locally, the tangent space splits approximately into semantic and nuisance directions.</p>
+              <figure class="figure-block wide method-figure">
+                <img src="figures/2_Define.png" alt="Local tangent-space view of nuisance versus semantic directions" width="2645" height="864" loading="lazy" />
+                <figcaption class="fig-cap"><strong>Figure 2.</strong> Local geometric hypothesis of semantic invariance. Paraphrases move along nuisance directions; invariant features come from projecting those directions away.</figcaption>
+              </figure>
+            </div>
+          </li>
+          <li>
+            <div>
+              <h3>Contrastive sensitivity decomposition</h3>
+              <p>From the hidden state changes caused by SP edits and by SC edits, compute two covariances, <em>S</em><sub>SP</sub> and <em>S</em><sub>SC</sub>. Solve the generalized eigenproblem</p>
+              <div class="eq-block" id="eigenEq" aria-label="Generalized eigenproblem"></div>
+              <p>Directions with large λ vary a lot under meaning changes and little under paraphrases. The top <em>k</em> form the invariant subspace. Its orthogonal complement is the nuisance subspace, giving <em>z</em> = <em>z</em><sub>inv</sub> + <em>z</em><sub>nuis</sub>.</p>
+            </div>
+          </li>
+          <li>
+            <div>
+              <h3>Zero shot attribution</h3>
+              <p>Concatenate the invariant projections from the layers with the strongest separation (the "invariant zone") into a model signature, and match a test model to the closest reference signature.</p>
+            </div>
+          </li>
+        </ol>
+
+        <div class="method-align">
+          <span class="method-align-spacer" aria-hidden="true">00</span>
+          <figure class="figure-block fig3">
+            <img src="figures/3_Attribution.png" alt="Attribution by matching invariant-zone signatures" width="1299" height="1348" loading="lazy" />
+            <figcaption class="fig-cap"><strong>Figure 3.</strong> Attribution by matching invariant-zone signatures across reference models.</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results -->
+    <section id="results">
+      <div class="wrap">
+        <p class="sec-label reveal">Results</p>
+
+        <div class="result-block reveal">
+          <h3>Meaning lies outside the nuisance subspace</h3>
+          <p class="takeaway">Displacement between semantic groups puts little of its energy in the nuisance subspace, much less than with PCA or cPCA subspaces. <em>E<sub>nuis</sub> is the fraction of the displacement between two group centroids that lies in the nuisance subspace.</em></p>
+          <div class="chart-card chart-half">
+            <div class="chart-wrap chart-wrap-short">
+              <canvas id="chartA" aria-label="Nuisance projection energy by layer for Ours, cPCA, and PCA"></canvas>
+            </div>
+            <p class="fig-cap" style="margin-top:0.75rem">
+              <strong>Figure 4.</strong> Layerwise nuisance projection energy for Llama (Ours vs cPCA vs PCA).
+            </p>
+          </div>
+        </div>
+
+        <div class="result-block reveal">
+          <h3>Interventions: the invariant subspace controls meaning</h3>
+          <p class="takeaway">Swapping in the invariant component from a paraphrase barely changes the next token distribution. Swapping it from a different meaning changes it a lot.</p>
+
+          <div class="swap-explain" aria-label="Illustration of invariant and nuisance swaps">
+            <h4>How a swap works</h4>
+            <p>Each hidden state is drawn as one bar: the <span class="hl-inv">left half</span> is the invariant (meaning) part; the <span class="hl-nuis">right half</span> is the nuisance (surface) part. A swap copies one half from a donor and keeps the other half from the original, then we measure next-token KL.</p>
+            <div class="swap-legend">
+              <span><i class="swatch inv" aria-hidden="true"></i> Invariant / meaning</span>
+              <span><i class="swatch nuis" aria-hidden="true"></i> Nuisance / surface form</span>
+            </div>
+            <svg class="swap-diagram" viewBox="0 0 720 340" role="img" aria-label="Invariant swap and nuisance swap diagrams with color-coded bars">
+              <defs>
+                <marker id="arrTeal" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+                  <path d="M0,0 L7,3.5 L0,7 Z" fill="#0e7c86"/>
+                </marker>
+                <marker id="arrOrange" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+                  <path d="M0,0 L7,3.5 L0,7 Z" fill="#c45c26"/>
+                </marker>
+              </defs>
+
+              <!-- Invariant swap -->
+              <text x="12" y="22" font-family="Fraunces, Georgia, serif" font-size="15" font-weight="650" fill="#101820">Invariant swap (Figs. 5–6)</text>
+              <text x="12" y="42" font-family="Sora, sans-serif" font-size="11" fill="#5a6a78">Replace meaning; keep surface of original</text>
+
+              <path d="M255 88 L255 72 L55 72 L55 88" fill="none" stroke="#0e7c86" stroke-width="1.75" marker-end="url(#arrTeal)"/>
+              <text x="155" y="66" text-anchor="middle" font-family="Sora,sans-serif" font-size="10" fill="#0e7c86">copy inv′ into inv</text>
+
+              <rect x="20" y="92" width="70" height="36" fill="rgba(14,124,134,0.35)" stroke="#0e7c86"/>
+              <rect x="90" y="92" width="70" height="36" fill="rgba(196,92,38,0.28)" stroke="#c45c26"/>
+              <text x="90" y="144" text-anchor="middle" font-family="Sora,sans-serif" font-size="10" fill="#5a6a78">Original</text>
+              <text x="55" y="114" text-anchor="middle" font-family="Sora,sans-serif" font-size="10" fill="#0a5f67">inv</text>
+              <text x="125" y="114" text-anchor="middle" font-family="Sora,sans-serif" font-size="10" fill="#c45c26">nuis</text>
+
+              <text x="195" y="114" font-family="Sora,sans-serif" font-size="16" fill="#5a6a78">+</text>
+
+              <rect x="220" y="92" width="70" height="36" fill="rgba(14,124,134,0.12)" stroke="#0e7c86" stroke-dasharray="3 2"/>
+              <rect x="290" y="92" width="70" height="36" fill="rgba(196,92,38,0.12)" stroke="#c45c26" stroke-dasharray="3 2"/>
+              <text x="290" y="144" text-anchor="middle" font-family="Sora,sans-serif" font-size="10" fill="#5a6a78">Donor</text>
+              <text x="255" y="114" text-anchor="middle" font-family="Sora,sans-serif" font-size="10" fill="#0a5f67">inv′</text>
+              <text x="325" y="114" text-anchor="middle" font-family="Sora,sans-serif" font-size="10" fill="#c45c26">nuis′</text>
+
+              <text x="390" y="114" font-family="Sora,sans-serif" font-size="18" fill="#5a6a78">→</text>
+
+              <rect x="420" y="92" width="70" height="36" fill="rgba(14,124,134,0.12)" stroke="#0e7c86" stroke-dasharray="3 2"/>
+              <rect x="490" y="92" width="70" height="36" fill="rgba(196,92,38,0.28)" stroke="#c45c26"/>
+              <text x="490" y="144" text-anchor="middle" font-family="Sora,sans-serif" font-size="10" fill="#5a6a78">Result</text>
+              <text x="455" y="114" text-anchor="middle" font-family="Sora,sans-serif" font-size="10" fill="#0a5f67">inv′</text>
+              <text x="525" y="114" text-anchor="middle" font-family="Sora,sans-serif" font-size="10" fill="#c45c26">nuis</text>
+              <text x="580" y="106" font-family="Sora,sans-serif" font-size="11" fill="#101820">then read KL</text>
+              <text x="580" y="122" font-family="Sora,sans-serif" font-size="10" fill="#5a6a78">SP donor → small</text>
+              <text x="580" y="136" font-family="Sora,sans-serif" font-size="10" fill="#5a6a78">SC / other group → large</text>
+
+              <line x1="20" y1="162" x2="700" y2="162" stroke="rgba(16,24,32,0.12)"/>
+
+              <!-- Nuisance swap -->
+              <text x="12" y="186" font-family="Fraunces, Georgia, serif" font-size="15" font-weight="650" fill="#101820">Nuisance swap (Fig. 6)</text>
+              <text x="12" y="206" font-family="Sora, sans-serif" font-size="11" fill="#5a6a78">Replace surface; keep meaning of original</text>
+
+              <rect x="20" y="228" width="70" height="36" fill="rgba(14,124,134,0.35)" stroke="#0e7c86"/>
+              <rect x="90" y="228" width="70" height="36" fill="rgba(196,92,38,0.28)" stroke="#c45c26"/>
+              <text x="90" y="280" text-anchor="middle" font-family="Sora,sans-serif" font-size="10" fill="#5a6a78">Original</text>
+              <text x="55" y="250" text-anchor="middle" font-family="Sora,sans-serif" font-size="10" fill="#0a5f67">inv</text>
+              <text x="125" y="250" text-anchor="middle" font-family="Sora,sans-serif" font-size="10" fill="#c45c26">nuis</text>
+
+              <text x="195" y="250" font-family="Sora,sans-serif" font-size="16" fill="#5a6a78">+</text>
+
+              <rect x="220" y="228" width="70" height="36" fill="rgba(14,124,134,0.12)" stroke="#0e7c86" stroke-dasharray="3 2"/>
+              <rect x="290" y="228" width="70" height="36" fill="rgba(196,92,38,0.12)" stroke="#c45c26" stroke-dasharray="3 2"/>
+              <text x="290" y="280" text-anchor="middle" font-family="Sora,sans-serif" font-size="10" fill="#5a6a78">Donor</text>
+              <text x="255" y="250" text-anchor="middle" font-family="Sora,sans-serif" font-size="10" fill="#0a5f67">inv′</text>
+              <text x="325" y="250" text-anchor="middle" font-family="Sora,sans-serif" font-size="10" fill="#c45c26">nuis′</text>
+
+              <path d="M325 264 L325 298 L125 298 L125 264" fill="none" stroke="#c45c26" stroke-width="1.75" marker-end="url(#arrOrange)"/>
+              <text x="225" y="314" text-anchor="middle" font-family="Sora,sans-serif" font-size="10" fill="#c45c26">copy nuis′ into nuis</text>
+
+              <text x="390" y="250" font-family="Sora,sans-serif" font-size="18" fill="#5a6a78">→</text>
+
+              <rect x="420" y="228" width="70" height="36" fill="rgba(14,124,134,0.35)" stroke="#0e7c86"/>
+              <rect x="490" y="228" width="70" height="36" fill="rgba(196,92,38,0.12)" stroke="#c45c26" stroke-dasharray="3 2"/>
+              <text x="490" y="280" text-anchor="middle" font-family="Sora,sans-serif" font-size="10" fill="#5a6a78">Result</text>
+              <text x="455" y="250" text-anchor="middle" font-family="Sora,sans-serif" font-size="10" fill="#0a5f67">inv</text>
+              <text x="525" y="250" text-anchor="middle" font-family="Sora,sans-serif" font-size="10" fill="#c45c26">nuis′</text>
+              <text x="580" y="244" font-family="Sora,sans-serif" font-size="11" fill="#101820">then read KL</text>
+              <text x="580" y="260" font-family="Sora,sans-serif" font-size="10" fill="#5a6a78">usually smaller than</text>
+              <text x="580" y="274" font-family="Sora,sans-serif" font-size="10" fill="#5a6a78">invariant SC swaps</text>
+            </svg>
+            <p class="swap-donor-note">In Figure 5, donors are within-group SP (paraphrase), within-group SC (soft meaning change), or between-group (different topic). Figure 6 averages invariant vs nuisance swaps over 1,400 groups with bootstrap intervals.</p>
+          </div>
+
+          <p class="takeaway">We swap only the invariant component to test whether that subspace carries meaning. Across models, paraphrase donors barely move the next-token distribution, while soft meaning changes raise KL and between-group donors raise it most.</p>
+          <div class="chart-card">
+            <div class="chart-wrap tall">
+              <canvas id="chartB" aria-label="Invariant component intervention KL by model and donor type"></canvas>
+            </div>
+            <p class="fig-cap" style="margin-top:0.75rem">
+              <strong>Figure 5.</strong> Invariant-swap KL on the final-token hidden state for one group, averaged over the top 4 invariant layers.
+            </p>
+          </div>
+
+          <p class="takeaway" style="margin-top:1.5rem">We repeat the intervention idea at scale, comparing invariant swaps with nuisance swaps over many groups. Invariant swaps produce larger KL than nuisance swaps for every model at every reported layer, with narrow bootstrap intervals.</p>
+          <div class="chart-card">
+            <div class="chart-toolbar">
+              <label for="layerSelect">Layer</label>
+              <select id="layerSelect">
+                <option value="3">Layer 3</option>
+                <option value="5">Layer 5</option>
+                <option value="8">Layer 8</option>
+              </select>
+            </div>
+            <div class="chart-wrap tall" id="chartCWrap">
+              <canvas id="chartC" aria-label="Bootstrap nuisance and invariant KL with confidence intervals"></canvas>
+            </div>
+            <p class="fig-cap" style="margin-top:0.75rem">
+              <strong>Figure 6.</strong> Mean over 1,400 semantic groups with 95% bootstrap confidence intervals (1,000 resamples). Invariant swaps produce larger changes than nuisance swaps for every model at every reported layer. Y axis shows only the selected layer.
+            </p>
+            <p class="axis-note">Y axis: KL divergence (log scale). Whiskers are 95% CI half-widths from Table 16.</p>
+          </div>
+        </div>
+
+        <div class="result-block reveal">
+          <h3>Zero shot model attribution</h3>
+          <p class="takeaway">Invariant zone signatures identify the source model, including after fine tuning and distillation, and do better than PCA and cPCA signatures.</p>
+
+          <div class="chart-card">
+            <div class="chart-toolbar">
+              <label for="groupToggle">Semantic group</label>
+              <select id="groupToggle">
+                <option value="G1">Group 1</option>
+                <option value="G2">Group 2</option>
+                <option value="G3">Group 3</option>
+              </select>
+            </div>
+            <div class="chart-wrap tall">
+              <canvas id="chartD" aria-label="Attribution accuracy for base, fine tuned, and distilled variants"></canvas>
+            </div>
+            <p class="fig-cap" style="margin-top:0.75rem">
+              <strong>Figure 7.</strong> Attribution accuracy (%) for Base (B), Fine tuned (FT), and Distilled (D) variants.
+            </p>
+          </div>
+
+          <p class="takeaway" style="margin-top:1.5rem">We compare invariant-zone signatures to PCA and cPCA baselines with matched subspace size, averaged over four model families.</p>
+          <div class="chart-card chart-sixty">
+            <div class="chart-wrap">
+              <canvas id="chartE" aria-label="Attribution accuracy versus PCA and cPCA baselines"></canvas>
+            </div>
+            <p class="fig-cap" style="margin-top:0.75rem">
+              <strong>Figure 8.</strong> Averaged over Llama, Mistral, Qwen2.5 and Gemma with matched subspace dimension.
+            </p>
+          </div>
+        </div>
+
+        <div class="result-block reveal">
+          <h3>Visualizing geometric separability</h3>
+          <p class="takeaway">Figure 9 compares model separability on 200 MS MARCO queries per model. The left panel reduces full hidden states with a Gaussian random projection before t-SNE. The right panel projects into the invariant subspace learned on the controlled SP/SC dataset and held fixed on these natural queries.</p>
+          <figure class="figure-block wide">
+            <div class="figure-block pad-frame">
+              <img src="figures/tsne_comparison_k32.png" alt="t-SNE of MS MARCO queries in full space versus invariant subspace" width="2386" height="1137" loading="lazy" />
+            </div>
+            <figcaption class="fig-cap">
+              <strong>Figure 9.</strong> Side-by-side t-SNE of model separability with 200 MS MARCO queries per model (<em>k</em> = 32).<br />
+              <strong>Left:</strong> full representation space via Gaussian random projection. <strong>Right:</strong> invariant subspace projection.
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- Additional checks -->
+    <section id="checks">
+      <div class="wrap reveal">
+        <p class="sec-label">Stress tests and ablations</p>
+        <div class="check-grid">
+          <article class="check-card">
+            <h3>Semantic ambiguity</h3>
+            <p>We stress the subspace with scope, punctuation, and attachment ambiguities, where small wording changes can flip the intended parse. Clear paraphrases and clear meaning changes are included as controls.</p>
+            <p><strong>Our subspace keeps lower nuisance energy than PCA and cPCA</strong> (layer 4: 0.0084 vs 0.0718 cPCA vs 0.0921 PCA), which suggests the decomposition still separates surface form from meaning when the meaning change is subtle.</p>
+            <p class="check-example">Example: "I saw the man who was holding a telescope." → "I saw the man with a telescope."</p>
+          </article>
+          <article class="check-card">
+            <h3>Multihop reasoning</h3>
+            <p>We also check short two-step reasoning chains, where an intermediate fact can stay fixed (SP) or be rewritten to change the answer (SC). The question itself stays the same.</p>
+            <p><strong>Swapping the semantic component changes outputs more than swapping the nuisance component</strong> (layer 4 KL: 0.360 vs 0.069), which matches the intervention story from the main results.</p>
+            <p class="check-example">Example: "Maya lives in Brookfield. Brookfield is in Canada." (SC: "...is in France").</p>
+          </article>
+          <article class="check-card">
+            <h3>Pooling</h3>
+            <p>Hidden states can be read from the last token or averaged over the sequence. We repeat the same decomposition and intervention protocol under both choices.</p>
+            <p><strong>Mean pooling and last-token pooling both keep SC effects above SP effects</strong>, and <strong>last-token pooling moves paraphrases less</strong> (Llama, layer 3, SP KL: 0.000037 last token vs 0.001190 mean), so we use last-token pooling as the default readout.</p>
+          </article>
+          <article class="check-card">
+            <h3>Subspace size</h3>
+            <p>The invariant subspace is formed from the top <em>k</em> generalized eigenvectors. If the useful structure were high dimensional, results would change sharply with <em>k</em>.</p>
+            <p><strong>Intervention behavior stays similar for <em>k</em> = 1, 10, and 32</strong>, which suggests that the main invariant structure is low dimensional and not an artifact of one rank choice.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Limitations -->
+    <section id="limitations">
+      <div class="wrap reveal">
+        <p class="sec-label">Limitations</p>
+        <ol class="limit-list">
+          <li>The decomposition is local and approximate: each semantic group has its own invariant subspace. It is not a universal decomposition of language representations.</li>
+          <li>The dataset is synthetically constructed in English with short inputs. Naturally occurring, multilingual and long context inputs remain to be evaluated.</li>
+          <li>The nuisance subspace is not fully disentangled. Nuisance swaps still cause some output change, even with paraphrase donors, so it may hold residual semantic information.</li>
+        </ol>
+        <figure class="figure-block limit-figure">
+          <img src="figures/1_column_nuis_sc_sp_k32_group5.png" alt="Nuisance swap KL by layer for SP and SC donors" width="750" height="600" loading="lazy" />
+          <figcaption class="fig-cap">
+            <strong>Figure 10.</strong> SP and SC nuisance swaps rise together with depth, without consistent separation.
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- Citation -->
+    <section id="cite">
+      <div class="wrap reveal">
+        <p class="sec-label">Citation</p>
+
+        <div class="bib-wrap">
+          <p class="bib-label">NeurIPS 2026</p>
+          <!-- TODO_AUTHOR: add volume and pages when available -->
+          <div class="bib-box">
+            <button class="copy-btn" type="button" data-copy="bibNeurips">Copy</button>
+            <pre class="bib" id="bibNeurips">@inproceedings{dasgupta2026invariant,
+  title     = {Invariant Features in Language Models: Geometric Characterization and Model Attribution},
+  author    = {Dasgupta, Agnibh and Tanvir, Abdullah All and Zhong, Xin},
+  booktitle = {Advances in Neural Information Processing Systems},
+  year      = {2026}
+}</pre>
+          </div>
+        </div>
+
+        <div class="bib-wrap">
+          <p class="bib-label">Preprint</p>
+          <div class="bib-box">
+            <button class="copy-btn" type="button" data-copy="bibArxiv">Copy</button>
+            <pre class="bib" id="bibArxiv">@article{dasgupta2026invariantArxiv,
+  title   = {Invariant Features in Language Models: Geometric Characterization and Model Attribution},
+  author  = {Dasgupta, Agnibh and Tanvir, Abdullah All and Zhong, Xin},
+  journal = {arXiv preprint arXiv:2605.06458},
+  year    = {2026}
+}</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap row">
+      <p>Department of Computer Science, University of Nebraska Omaha</p>
+      <div class="links">
+        <!-- TODO_AUTHOR Paper footer link -->
+        <a href="https://arxiv.org/abs/2605.06458" target="_blank" rel="noopener">arXiv</a>
+        <a href="https://github.com/XinZhong-AI/InvariantFeaturesLanguageModels" target="_blank" rel="noopener">Code</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+  /* ========== Data from camera-ready Section 4 ========== */
+  const GROUPS = {
+    Cats: {
+      anchor: "Describe the hunting behavior of domestic cats.",
+      sp: ["Describe the hunting habits of domestic cats.", "Detail how house cats pursue and capture prey."],
+      sc: ["Describe the sleeping behavior of domestic cats.", "Describe the nocturnal behavior of domestic cats."]
+    },
+    France: {
+      anchor: "What is the official language of France?",
+      sp: ["Which language is officially recognized in France?", "Identify the language that serves as the official one in France."],
+      sc: ["What is the capital city of France?", "What is the official flower of France?"],
+      hard: "What is the longest river in South America?"
+    },
+    Python: {
+      anchor: "Why did Python become the dominant language for data science?",
+      sp: ["What factors led to Python becoming the dominant language in data science?", "Explain the reasons behind Python's leading position in data science."],
+      sc: ["Why did Python become popular in academia?", "Why did Python become popular for scientific computing?"]
+    },
+    Photosynthesis: {
+      anchor: "What are the pros and cons of engineering crops for enhanced photosynthesis?",
+      sp: ["What are the advantages and disadvantages of engineering crops for improved photosynthesis?", "Discuss the benefits and costs of engineering crops to improve photosynthetic performance."],
+      sc: ["What are the pros and cons of engineering crops for drought resistance?", "What are the pros and cons of engineering crops for improved carbon sequestration?"]
+    },
+    Democracy: {
+      anchor: "Describe the role of free speech in a democratic society.",
+      sp: ["What role does free speech play in a democratic society?", "Explain the function of free expression in democratic systems."],
+      sc: ["Describe the role of free press in a democratic society.", "Describe the role of voting rights in a democratic society."]
+    },
+    Einstein: {
+      anchor: "What is Einstein's most famous theory?",
+      sp: ["Which theory is Albert Einstein best known for?", "Identify the theory for which Albert Einstein is most widely recognized."],
+      sc: ["What is Einstein's nationality?", "What is Einstein's most famous thought experiment?"]
+    },
+    "Climate Change": {
+      anchor: "Describe the effect of climate change on global sea levels.",
+      sp: ["What impact does climate change have on global sea levels?", "Explain how climate change affects sea levels on a global scale."],
+      sc: ["Describe the effect of climate change on Arctic ecosystems.", "Describe the effect of climate change on global monsoon patterns."]
+    },
+    Calculus: {
+      anchor: "How do you find the derivative of a composite function?",
+      sp: ["How is the derivative of a composite function calculated?", "Explain how to differentiate a function composed of other functions."],
+      sc: ["How do you evaluate the limit of a function?", "How do you compute the second derivative of a function?"]
+    },
+    Meditation: {
+      anchor: "Describe the cognitive benefits of regular meditation practice.",
+      sp: ["What cognitive benefits are associated with regular meditation practice?", "Explain the mental effects of consistent meditation practice."],
+      sc: ["Describe the physical benefits of regular meditation practice.", "Describe the psychological benefits of regular meditation practice."]
+    },
+    Bread: {
+      anchor: "What is the primary leavening agent in sourdough bread?",
+      sp: ["What is the main leavening agent in sourdough bread?", "Identify the ingredient responsible for leavening in sourdough bread."],
+      sc: ["What is the main ingredient in sourdough bread?", "What is the typical crust texture of sourdough bread?"]
+    }
+  };
+
+  const D4 = {
+    layer: [1, 4, 8, 12, 16],
+    ours: [0.0025, 0.0050, 0.0085, 0.0053, 0.0047],
+    cpca: [0.0323, 0.0676, 0.0691, 0.0590, 0.0152],
+    pca: [0.7320, 0.5584, 0.8851, 0.9572, 0.9689]
+  };
+
+  /* [between, within SP, within SC] */
+  const D5 = {
+    "Mistral-7B": [0.974, 0.036, 0.341],
+    "Llama-3-8B": [0.986, 0.040, 0.360],
+    "Gemma-7B": [0.979, 0.042, 0.382],
+    "Qwen2.5-7B": [0.984, 0.047, 0.401],
+    "GLM-4-9B": [0.983, 0.034, 0.337],
+    "DeepSeek-MoE": [0.985, 0.052, 0.427],
+    "InternLM2-7B": [0.984, 0.039, 0.354],
+    "Phi-4-mini": [0.981, 0.045, 0.391],
+    "Falcon3-7B": [0.986, 0.049, 0.418]
+  };
+
+  /* [nuisKL, nuisCI, invKL, invCI, ...] */
+  const D6 = {
+    "Mistral-7B": {
+      "3": [0.000294, 0.000022, 0.183353, 0.000924],
+      "5": [0.001740, 0.000084, 0.048431, 0.000880],
+      "8": [0.000535, 0.000022, 0.115219, 0.000627]
+    },
+    "Llama-3-8B": {
+      "3": [0.001294, 0.000098, 0.010279, 0.000647],
+      "5": [0.006545, 0.000497, 0.039726, 0.001782],
+      "8": [0.009954, 0.000670, 0.109119, 0.003465]
+    },
+    "Qwen2.5-7B": {
+      "3": [0.001692, 0.000049, 0.141399, 0.000169],
+      "5": [0.000498, 0.000021, 0.103953, 0.000996],
+      "8": [0.002991, 0.000074, 0.134659, 0.001000]
+    },
+    "Gemma-7B": {
+      "3": [0.000982, 0.000041, 0.083551, 0.000415],
+      "5": [0.000252, 0.000035, 0.174981, 0.000732],
+      "8": [0.001787, 0.000030, 0.175533, 0.000438]
+    },
+    "Phi-4-mini": {
+      "3": [0.001135, 0.000073, 0.150466, 0.000103],
+      "5": [0.001609, 0.000055, 0.157141, 0.000147],
+      "8": [0.000629, 0.000069, 0.137118, 0.000304]
+    },
+    "GLM-4-9B": {
+      "3": [0.001060, 0.000083, 0.025708, 0.000593],
+      "5": [0.002712, 0.000082, 0.077275, 0.000622],
+      "8": [0.001142, 0.000044, 0.181325, 0.000979]
+    },
+    "DeepSeek-MoE-16B": {
+      "3": [0.002609, 0.000038, 0.147375, 0.000650],
+      "5": [0.002764, 0.000089, 0.190571, 0.000611],
+      "8": [0.001402, 0.000064, 0.027540, 0.000402]
+    },
+    "InternLM2-7B": {
+      "3": [0.002665, 0.000025, 0.163942, 0.000931],
+      "5": [0.000171, 0.000056, 0.106152, 0.000652],
+      "8": [0.002509, 0.000086, 0.037368, 0.000844]
+    },
+    "Falcon3-7B": {
+      "3": [0.000382, 0.000039, 0.087830, 0.000734],
+      "5": [0.001994, 0.000037, 0.102695, 0.000221],
+      "8": [0.001578, 0.000037, 0.027555, 0.000999]
+    }
+  };
+
+  const D7 = {
+    Mistral: { G1: [93.2, 91.4, 89.8], G2: [92.7, 91.0, 89.4], G3: [93.5, 91.8, 90.2] },
+    Llama3: { G1: [94.1, 92.5, 90.9], G2: [93.8, 92.1, 90.5], G3: [94.4, 92.9, 91.3] },
+    Gemma: { G1: [92.8, 90.9, 89.2], G2: [92.3, 90.5, 88.8], G3: [93.0, 91.2, 89.6] },
+    "Qwen2.5": { G1: [93.6, 91.8, 90.1], G2: [93.1, 91.3, 89.7], G3: [93.9, 92.0, 90.5] },
+    "Phi4-mini": { G1: [89.6, 87.8, 86.1], G2: [89.2, 87.4, 85.8], G3: [90.1, 88.2, 86.5] },
+    GLM4: { G1: [95.2, 93.6, 91.9], G2: [94.8, 93.1, 91.5], G3: [95.6, 94.0, 92.3] },
+    DeepSeek: { G1: [95.8, 94.2, 92.6], G2: [95.3, 93.7, 92.0], G3: [96.1, 94.5, 92.9] },
+    InternLM2: { G1: [94.9, 93.3, 91.7], G2: [94.5, 92.9, 91.3], G3: [95.2, 93.6, 91.9] },
+    Falcon3: { G1: [95.5, 93.9, 92.2], G2: [95.0, 93.4, 91.8], G3: [95.8, 94.2, 92.5] }
+  };
+
+  const D8 = {
+    labels: ["Base", "Fine tuned", "Distilled"],
+    pca: [86.08, 83.98, 81.25],
+    cpca: [89.33, 87.53, 84.65],
+    ours: [95.45, 94.20, 92.25]
+  };
+
+  /* Shared across Figs 4, 7, 8: page-toned greens/grays, distinct from swap teal/orange.
+     Ours=Base (deep sea-green), PCA=FT (cool slate), cPCA=Distilled (muted olive). */
+  const CHART_COLORS = {
+    ours: "#35665f",
+    base: "#35665f",
+    pca: "#6a7f8c",
+    cpca: "#9a8b6e",
+    ft: "#6a7f8c",
+    distilled: "#9a8b6e",
+    inv: "#0e7c86",
+    nuis: "#c45c26"
+  };
+
+  /* ========== Explorer ========== */
+  function renderGroup(name) {
+    const g = GROUPS[name];
+    const hardHtml = g.hard
+      ? `<p>${g.hard}</p>`
+      : `<p>Hard SC variants change the topic or domain (for example, from cats to monarch butterfly migration).</p>`;
+    document.getElementById("exampleGrid").innerHTML = `
+      <div class="ex-box">
+        <h4>Anchor</h4>
+        <p>${g.anchor}</p>
+      </div>
+      <div class="ex-box">
+        <h4>Semantic preserving (SP)</h4>
+        <ul><li>${g.sp[0]}</li><li>${g.sp[1]}</li></ul>
+      </div>
+      <div class="ex-box sc">
+        <h4>Semantic changing (SC), soft</h4>
+        <ul><li>${g.sc[0]}</li><li>${g.sc[1]}</li></ul>
+      </div>
+      <div class="ex-box hard">
+        <h4>Hard SC</h4>
+        ${hardHtml}
+      </div>`;
+  }
+
+  const groupSelect = document.getElementById("groupSelect");
+  Object.keys(GROUPS).forEach((name) => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    groupSelect.appendChild(opt);
+  });
+  groupSelect.addEventListener("change", () => renderGroup(groupSelect.value));
+  renderGroup(groupSelect.value);
+
+  /* ========== KaTeX ========== */
+  function renderEq() {
+    const el = document.getElementById("eigenEq");
+    if (!el || !window.katex) return;
+    katex.render("S_{\\mathrm{SC}} v = \\lambda (S_{\\mathrm{SP}} + \\varepsilon I) v", el, {
+      throwOnError: false,
+      displayMode: true
+    });
+  }
+  if (window.katex) renderEq();
+  else window.addEventListener("load", renderEq);
+
+  /* ========== Charts ========== */
+  Chart.defaults.font.family = "Sora, system-ui, sans-serif";
+  Chart.defaults.color = "#5a6a78";
+
+  /* D4 matches paper Table 12 (Llama layerwise E_nuis) exactly. */
+  const chartATicks = [0.001, 0.01, 0.1, 1];
+  new Chart(document.getElementById("chartA"), {
+    type: "line",
+    data: {
+      labels: D4.layer.map((l) => "L" + l),
+      datasets: [
+        { label: "PCA", data: D4.pca, borderColor: CHART_COLORS.pca, backgroundColor: CHART_COLORS.pca, tension: 0.2 },
+        { label: "cPCA", data: D4.cpca, borderColor: CHART_COLORS.cpca, backgroundColor: CHART_COLORS.cpca, tension: 0.2 },
+        { label: "Ours", data: D4.ours, borderColor: CHART_COLORS.ours, backgroundColor: CHART_COLORS.ours, tension: 0.2 }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "top", reverse: false },
+        title: { display: true, text: "E_nuis by layer", color: "#243040", font: { size: 13 } }
+      },
+      scales: {
+        x: { title: { display: true, text: "Layer" } },
+        y: {
+          type: "logarithmic",
+          min: 0.001,
+          max: 1,
+          title: { display: true, text: "E_nuis (log)" },
+          afterBuildTicks(axis) {
+            axis.ticks = chartATicks.map((value) => ({ value }));
+          },
+          ticks: {
+            autoSkip: false,
+            callback(value) {
+              const v = Number(value);
+              if (v === 1) return "1";
+              if (v === 0.1) return "0.1";
+              if (v === 0.01) return "0.01";
+              if (v === 0.001) return "0.001";
+              return "";
+            }
+          }
+        }
+      }
+    }
+  });
+
+  const modelNames = Object.keys(D5);
+  new Chart(document.getElementById("chartB"), {
+    type: "bar",
+    data: {
+      labels: modelNames,
+      datasets: [
+        {
+          label: "Within group SP donor",
+          data: modelNames.map((m) => D5[m][1]),
+          backgroundColor: "#7eb8bf"
+        },
+        {
+          label: "Within group SC donor",
+          data: modelNames.map((m) => D5[m][2]),
+          backgroundColor: "#2a8f97"
+        },
+        {
+          label: "Between group donor",
+          data: modelNames.map((m) => D5[m][0]),
+          backgroundColor: "#063a40"
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "top" },
+        title: { display: true, text: "Invariant swap KL by donor type", color: "#243040", font: { size: 13 } }
+      },
+      scales: {
+        x: { ticks: { maxRotation: 45, minRotation: 0, font: { size: 10 } } },
+        y: { title: { display: true, text: "KL divergence" }, beginAtZero: true }
+      }
+    }
+  });
+
+  let chartC;
+  function shortModel(name) {
+    return name.replace("-Instruct", "").replace("-Chat", "").replace("-7B", "").replace("-8B", "").replace("-9B", "").replace("-16B", "").replace("DeepSeek-MoE", "DeepSeek");
+  }
+  function buildChartC(layer) {
+    const labels = Object.keys(D6);
+    const nuis = labels.map((m) => D6[m][layer][0]);
+    const nuisErr = labels.map((m) => D6[m][layer][1]);
+    const inv = labels.map((m) => D6[m][layer][2]);
+    const invErr = labels.map((m) => D6[m][layer][3]);
+    const allVals = nuis.concat(inv).filter((v) => v > 0);
+    const yMin = Math.min(...allVals) / 2;
+    const yMax = Math.max(...allVals) * 1.4;
+
+    if (chartC) {
+      chartC.destroy();
+      chartC = null;
+    }
+    const wrap = document.getElementById("chartCWrap");
+    wrap.innerHTML = "";
+    const canvas = document.createElement("canvas");
+    canvas.id = "chartC";
+    canvas.setAttribute("aria-label", `Bootstrap nuisance and invariant KL at layer ${layer}`);
+    wrap.appendChild(canvas);
+
+    chartC = new Chart(canvas, {
+      type: "bar",
+      data: {
+        labels: labels.map(shortModel),
+        datasets: [
+          {
+            label: "Nuisance KL",
+            data: nuis,
+            backgroundColor: "rgba(196,92,38,0.85)",
+            errorBars: nuisErr
+          },
+          {
+            label: "Invariant KL",
+            data: inv,
+            backgroundColor: "rgba(14,124,134,0.85)",
+            errorBars: invErr
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: {
+          legend: { position: "top" },
+          title: { display: true, text: `Bootstrap KL at layer ${layer} (log scale)`, color: "#243040", font: { size: 13 } }
+        },
+        scales: {
+          x: { ticks: { maxRotation: 45, font: { size: 10 } } },
+          y: {
+            type: "logarithmic",
+            min: yMin,
+            max: yMax,
+            title: { display: true, text: `KL divergence at layer ${layer} (log)` },
+            ticks: {
+              autoSkip: true,
+              maxTicksLimit: 6,
+              callback(value) {
+                const v = Number(value);
+                if (v <= 0) return "";
+                if (v >= 0.01) return v.toFixed(2);
+                return v.toExponential(1);
+              }
+            }
+          }
+        }
+      },
+      plugins: [{
+        id: "ciWhiskers",
+        afterDatasetsDraw(chart) {
+          const { ctx } = chart;
+          chart.data.datasets.forEach((ds, di) => {
+            const meta = chart.getDatasetMeta(di);
+            const errs = ds.errorBars || [];
+            meta.data.forEach((bar, i) => {
+              const err = errs[i];
+              if (!err || err <= 0) return;
+              const yScale = chart.scales.y;
+              const val = ds.data[i];
+              const lo = Math.max(val - err, yMin);
+              const hi = Math.min(val + err, yMax);
+              const x = bar.x;
+              const yLo = yScale.getPixelForValue(lo);
+              const yHi = yScale.getPixelForValue(hi);
+              ctx.save();
+              ctx.strokeStyle = "#101820";
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.moveTo(x, yLo);
+              ctx.lineTo(x, yHi);
+              ctx.moveTo(x - 4, yLo);
+              ctx.lineTo(x + 4, yLo);
+              ctx.moveTo(x - 4, yHi);
+              ctx.lineTo(x + 4, yHi);
+              ctx.stroke();
+              ctx.restore();
+            });
+          });
+        }
+      }]
+    });
+  }
+  document.getElementById("layerSelect").addEventListener("change", (e) => buildChartC(e.target.value));
+  buildChartC("3");
+
+  let chartD;
+  function buildChartD(group) {
+    const labels = Object.keys(D7);
+    if (chartD) chartD.destroy();
+    chartD = new Chart(document.getElementById("chartD"), {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          { label: "Base (B)", data: labels.map((m) => D7[m][group][0]), backgroundColor: CHART_COLORS.base },
+          { label: "Fine tuned (FT)", data: labels.map((m) => D7[m][group][1]), backgroundColor: CHART_COLORS.ft },
+          { label: "Distilled (D)", data: labels.map((m) => D7[m][group][2]), backgroundColor: CHART_COLORS.distilled }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "top" },
+          title: { display: true, text: `Attribution accuracy (%) · ${group}`, color: "#243040", font: { size: 13 } }
+        },
+        scales: {
+          x: { ticks: { maxRotation: 45, font: { size: 10 } } },
+          y: {
+            min: 80,
+            max: 100,
+            title: { display: true, text: "Accuracy %" }
+          }
+        }
+      }
+    });
+  }
+  document.getElementById("groupToggle").addEventListener("change", (e) => buildChartD(e.target.value));
+  buildChartD("G1");
+
+  new Chart(document.getElementById("chartE"), {
+    type: "bar",
+    data: {
+      labels: D8.labels,
+      datasets: [
+        { label: "PCA", data: D8.pca, backgroundColor: CHART_COLORS.pca },
+        { label: "cPCA", data: D8.cpca, backgroundColor: CHART_COLORS.cpca },
+        { label: "Ours", data: D8.ours, backgroundColor: CHART_COLORS.ours }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "top" },
+        title: { display: true, text: "Attribution vs baselines", color: "#243040", font: { size: 13 } }
+      },
+      scales: {
+        y: {
+          min: 80,
+          max: 100,
+          title: { display: true, text: "Accuracy %" }
+        }
+      }
+    }
+  });
+
+  /* ========== Reveal + copy ========== */
+  const reveals = document.querySelectorAll(".reveal");
+  const io = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) {
+          e.target.classList.add("visible");
+          io.unobserve(e.target);
+        }
+      });
+    },
+    { threshold: 0.12, rootMargin: "0px 0px -8% 0px" }
+  );
+  reveals.forEach((el) => io.observe(el));
+
+  document.querySelectorAll(".copy-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.getAttribute("data-copy");
+      const text = document.getElementById(id).textContent.trim();
+      try {
+        await navigator.clipboard.writeText(text);
+        btn.textContent = "Copied";
+        setTimeout(() => { btn.textContent = "Copy"; }, 1600);
+      } catch {
+        btn.textContent = "Select & copy";
+      }
+    });
+  });
+  </script>
+</body>
+</html>
