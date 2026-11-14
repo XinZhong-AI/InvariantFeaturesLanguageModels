@@ -6,7 +6,7 @@ Department of Computer Science, University of Nebraska Omaha
 
 \* Equal contribution. † Corresponding author.
 
-[🌐 Project page](https://cent664.github.io/LLMID/) · [📄 Paper (arXiv)](https://arxiv.org/abs/2605.06458) · [💻 Code](https://github.com/XinZhong-AI/InvariantFeaturesLanguageModels)
+[🌐 Project page](https://cent664.github.io/LLMID/) · [📄 Paper](https://arxiv.org/abs/2605.06458) · [💻 Code](https://github.com/XinZhong-AI/InvariantFeaturesLanguageModels)
 
 **🔍 Project Overview**
 ---
@@ -41,13 +41,11 @@ Invariant-zone signatures identify the source model under base, fine-tuned, and 
 **📚 Citation**
 ---
 ```bibtex
-@article{dasgupta2026invariantArxiv,
-  title   = {Invariant Features in Language Models: Geometric Characterization and Model Attribution},
-  author  = {Dasgupta, Agnibh and Tanvir, Abdullah All and Zhong, Xin},
-  journal = {arXiv preprint arXiv:2605.06458},
-  year    = {2026}
+@inproceedings{dasgupta2026invariant,
+  title     = {Invariant Features in Language Models: Geometric Characterization and Model Attribution},
+  author    = {Dasgupta, Agnibh and Tanvir, Abdullah All and Zhong, Xin},
+  booktitle = {Advances in Neural Information Processing Systems},
+  year      = {2026}
 }
 ```
-📌 A. Dasgupta, A. A. Tanvir, and X. Zhong, "Invariant Features in Language Models: Geometric Characterization and Model Attribution," arXiv preprint arXiv:2605.06458, 2026.
-
-*Citations will be updated once the final venue details become available.*
+📌 A. Dasgupta, A. A. Tanvir, and X. Zhong, "Invariant Features in Language Models: Geometric Characterization and Model Attribution," in *Advances in Neural Information Processing Systems (NeurIPS)*, 2026.
